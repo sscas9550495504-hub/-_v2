@@ -1,0 +1,32 @@
+name: TW ABC B-breakout screener
+on:
+  workflow_dispatch:
+  schedule:
+    # 11:40 UTC = 台灣時間19:40，週一到週五；第三方行情預計18:30更新
+    - cron: '40 11 * * 1-5'
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run entire-market screener (at least 200 stocks)
+        run: python b_wave_breakout.py --asof auto --min-universe 200 --watch-size 200 --workers 12 --out results
+      - name: Publish scan CSV and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tw-abc-results-${{ github.run_number }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 30
